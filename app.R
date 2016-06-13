@@ -59,7 +59,7 @@ server <- function(input, output){
             var <- ifelse(input$variable == "Tsfc", "STemp", "Z500")
             folderName <- paste(path_to_data, "NA_", var, "filteredBlobCSVs_",
                                  cutMin, '_', 
-                                 cutMax,'_200k/' ,sep = '')
+                                 cutMax, '_200k/', sep = '')
             # create placeholder matrices for spatial lag plots
             warmtoplot <- matrix(0, 144, 73)
             coldtoplot <- matrix(0, 144, 73)
