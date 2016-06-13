@@ -41,7 +41,7 @@ server <- function(input, output){
         if(input$timeframe == "seas")
         {
             selectInput(inputId = "time", label = "Select your choice",
-                        choices = c("Winter", "Autumn", "Summer", "Spring"))
+                        choices = c("Winter", "Spring", "Summer", "Fall"))
         }else if(input$timeframe == "mth")
         {
             selectInput(inputId = "time", label = "Select your choice",
@@ -52,6 +52,10 @@ server <- function(input, output){
     cutMin <- 5
     cutMax <- 95
     path_to_data <- './'
+    months = c(0,29,28,31,30,31,30,31,31,30,31,30,29)
+    for(index in 2:13){
+      months[index] = months[index - 1] + months[index]
+    }
     
     p <- eventReactive(
         input$go, {
@@ -128,10 +132,144 @@ server <- function(input, output){
                 })
             }else if(input$timeframe == "seas")
             {
+              withProgress(message = 'Calculating...', value = 0, {
+                # Number of times we'll go through the loop
+                n <- 34
+                
+                # the season we'll go through
+                if(input$time == "Winter"){
+                  date = c(seq(1,58,1),seq(332,361,1))
+                }else if(input$time == "Spring"){
+                  date = seq(59,149,1)
+                }
+                else if(input$time == "Summer"){
+                  date = seq(150,240,1)
+                }
+                else if(input$time == "Fall"){
+                  date = seq(241,331,1)
+                }
+                
+                for(year in 1979:(1979 + n))
+                {
+                  incProgress(1, detail = paste("Doing year", year))
+                  
+                  
+                  for(day in date)
+                  {
+                    current_file <- paste(folderName, var,
+                                          '_blobs_200k_day_', day, 
+                                          '_year_', year, '.csv',
+                                          sep = '')
+                    df <- try(read.table(current_file, header = F,
+                                         sep = ','), silent = T)
+                    if(class(df) == 'try-error')
+                      next
+                    
+                    # if today was warm at loc, update warmtoplot
+                    occ <- which(df[, 2] == loc[1] &
+                                   df[, 3] == loc[2])
+                    if(length(occ) == 0)
+                      next
+                    
+                    # update appropriate spatial lag plot (warm or cold)
+                    if(df[occ, 1] > 0)
+                    {
+                      # increase number of days reference location had anomaly
+                      warmCount = warmCount + 1
+                      for(i in 1:nrow(df))
+                      {
+                        warmtoplot[df[i, 2], df[i, 3]] =
+                          warmtoplot[df[i, 2],
+                                     df[i, 3]] + 1
+                      }
+                    }
+                    else
+                    {
+                      coldCount = coldCount + 1
+                      for(i in 1:nrow(df))
+                      {
+                        coldtoplot[df[i, 2], df[i, 3]] =
+                          coldtoplot[df[i, 2],
+                                     df[i, 3]] + 1
+                      }
+                    }
+                  }
+                }
+                
+                # plot the blob mask for NAm region
+                warmtoplot = warmtoplot / warmCount
+                coldtoplot = coldtoplot / coldCount
+                
+                warmtoplot[loc[1], loc[2]] = 0
+                coldtoplot[loc[1], loc[2]] = 0
+                list(wa = warmtoplot, co = coldtoplot)
+              })
                 
             }else if(input$timeframe == "mth")
             {
+              withProgress(message = 'Calculating...', value = 0, {
+                # Number of times we'll go through the loop
+                n <- 34
                 
+                # find the month we choose
+                month_time = match(input$time, month.abb)
+                date = seq(months[month_time] + 1, months[month_time + 1], 1)
+                
+                for(year in 1979:(1979 + n))
+                {
+                  incProgress(1, detail = paste("Doing year", year))
+                  
+                  
+                  for(day in date)
+                  {
+                    current_file <- paste(folderName, var,
+                                          '_blobs_200k_day_', day, 
+                                          '_year_', year, '.csv',
+                                          sep = '')
+                    df <- try(read.table(current_file, header = F,
+                                         sep = ','), silent = T)
+                    if(class(df) == 'try-error')
+                      next
+                    
+                    # if today was warm at loc, update warmtoplot
+                    occ <- which(df[, 2] == loc[1] &
+                                   df[, 3] == loc[2])
+                    if(length(occ) == 0)
+                      next
+                    
+                    # update appropriate spatial lag plot (warm or cold)
+                    if(df[occ, 1] > 0)
+                    {
+                      # increase number of days reference location had anomaly
+                      warmCount = warmCount + 1
+                      for(i in 1:nrow(df))
+                      {
+                        warmtoplot[df[i, 2], df[i, 3]] =
+                          warmtoplot[df[i, 2],
+                                     df[i, 3]] + 1
+                      }
+                    }
+                    else
+                    {
+                      coldCount = coldCount + 1
+                      for(i in 1:nrow(df))
+                      {
+                        coldtoplot[df[i, 2], df[i, 3]] =
+                          coldtoplot[df[i, 2],
+                                     df[i, 3]] + 1
+                      }
+                    }
+                  }
+                }
+                
+                # plot the blob mask for NAm region
+                warmtoplot = warmtoplot / warmCount
+                coldtoplot = coldtoplot / coldCount
+                
+                warmtoplot[loc[1], loc[2]] = 0
+                coldtoplot[loc[1], loc[2]] = 0
+                list(wa = warmtoplot, co = coldtoplot)
+              })
             }
         })
     
