@@ -2,7 +2,7 @@
 
 ## Description
 
-This Shiny eapp takes data from climate extremes and processes them to produce spatial conditional probability maps, i.e., probability of an extreme temperature given there was an extreme temperature in the reference location. This calculation is done over the past 35 years.
+This Shiny R app takes data from climate extremes and processes them to produce spatial conditional probability maps, i.e., probability of extreme values of selected variable in the North American region given there was an extreme value of same variable in the reference location over the chosen timeframe.
 
 ## Link to app
 
@@ -13,4 +13,6 @@ tnybny.shinyapps.io/CondProbMaps/
 https://sites.google.com/a/ncsu.edu/tnybny/blog/conditional-probability-maps-of-extreme-temperatures
  
 ## Contact
+
 tnybny@gmail.com
+zchen22@ncsu.edu
