@@ -6,7 +6,7 @@ This Shiny R app takes data from climate extremes and processes them to produce 
 
 ## Link to app
 
-tnybny.shinyapps.io/CondProbMaps/
+https://tnybny.shinyapps.io/Spatial_conditional_probability_maps/
 
 ## Link to blog post about it
 
