@@ -18,13 +18,17 @@ ui <- fluidPage(
                      label = "Choose a latitude index in [6, 26]",
                      min = 6, max = 26, value = 22),
         selectInput(inputId = "variable",
-                    label = "Choose a climate variable",
+                    label = "Choose a reference climate variable",
                     choices = c("Tsfc", "Z500")),
         selectInput(inputId = "timeframe",
                     label = "Choose a timeframe",
                     choices = c("Period of record" = "por",
                                 "Specific season" = "seas",
                                 "Specific month" = "mth")),
+        selectInput(inputId = "crossref",
+                    label = "Cross referencing between variables",
+                    choices = c("No cross referencing" = "nocr",
+                                "Cross referencing" = "cr")),
         htmlOutput("timeUI"),
         actionButton(inputId = "go", label = "Update")
     ),
@@ -58,9 +62,10 @@ server <- function(input, output){
         input$go, {
             loc <- c(input$lon, input$lat)
             var <- ifelse(input$variable == "Tsfc", "STemp", "Z500")
+            filterArea <- ifelse(input$variable == "Tsfc", "200k", "0k")
             folderName <- paste(path_to_data, "NA_", var, "filteredBlobCSVs_",
                                 cutMin, "_", 
-                                cutMax, "_200k/", sep = "")
+                                cutMax, "_", filterArea, "/", sep = "")
             # create placeholder matrices for spatial lag plots
             warmtoplot <- matrix(0, 144, 73)
             coldtoplot <- matrix(0, 144, 73)
@@ -68,6 +73,14 @@ server <- function(input, output){
             warmCount = 0
             coldCount = 0
             
+            if(input$crossref == "cr")
+            {
+                var2 <- ifelse(var == "Stemp", "Z500", "STemp")
+                filterArea2 <- ifelse(var == "Tsfc", "0k", "200k")
+                folderName2 <- paste(path_to_data, "NA_", var2, "filteredBlobCSVs_",
+                                     cutMin, "_", 
+                                     cutMax, "_", filterArea2, "/", sep = "")
+            }
             if(input$timeframe == "por")
             {
                 withProgress(message = "Calculating...", value = 0, {
@@ -80,7 +93,8 @@ server <- function(input, output){
                         for(day in 1:361)
                         {
                             currentFile <- paste(folderName, var,
-                                                 "_blobs_200k_day_", day, 
+                                                 "_blobs_", filterArea, 
+                                                 "_day_", day, 
                                                  "_year_", year, ".csv",
                                                  sep = "")
                             df <- try(read.table(currentFile, header = F,
@@ -99,21 +113,55 @@ server <- function(input, output){
                             {
                                 # increase number of days reference location had anomaly
                                 warmCount <- warmCount + 1
-                                for(i in 1:nrow(df))
+                                if(input$crossref == "cr")
                                 {
-                                    warmtoplot[df[i, 2], df[i, 3]] <-
-                                        warmtoplot[df[i, 2],
-                                                   df[i, 3]] + 1
+                                    # account for cross referencing
+                                    currentFile2 <- paste(folderName2, var2,
+                                                          "_blobs_",
+                                                          filterArea2,
+                                                          "_day_", day, 
+                                                          "_year_", year,
+                                                          ".csv",
+                                                          sep = "")
+                                    df2 <- try(read.table(currentFile2, header = F,
+                                                          sep = ","), silent = T)
+                                    if(class(df2) == "try-error")
+                                        next
+                                } else {
+                                    df2 = df
+                                }
+                                for(i in 1:nrow(df2))
+                                {
+                                    warmtoplot[df2[i, 2], df2[i, 3]] <-
+                                        warmtoplot[df2[i, 2],
+                                                   df2[i, 3]] + 1
                                 }
                             }
                             else
                             {
                                 coldCount <- coldCount + 1
-                                for(i in 1:nrow(df))
+                                if(input$crossref == "cr")
                                 {
-                                    coldtoplot[df[i, 2], df[i, 3]] <-
-                                        coldtoplot[df[i, 2],
-                                                   df[i, 3]] + 1
+                                    # account for cross referencing
+                                    currentFile2 <- paste(folderName2, var2,
+                                                          "_blobs_",
+                                                          filterArea2,
+                                                          "_day_", day, 
+                                                          "_year_", year,
+                                                          ".csv",
+                                                          sep = "")
+                                    df2 <- try(read.table(currentFile2, header = F,
+                                                          sep = ","), silent = T)
+                                    if(class(df2) == "try-error")
+                                        next
+                                } else {
+                                    df2 = df
+                                }
+                                for(i in 1:nrow(df2))
+                                {
+                                    coldtoplot[df2[i, 2], df2[i, 3]] <-
+                                        coldtoplot[df2[i, 2],
+                                                   df2[i, 3]] + 1
                                 }
                             }
                         }
@@ -144,7 +192,8 @@ server <- function(input, output){
                         for(day in days)
                         {
                             currentFile <- paste(folderName, var,
-                                                 "_blobs_200k_day_", day, 
+                                                 "_blobs_", filterArea,
+                                                 "_day_", day, 
                                                  "_year_", year, ".csv",
                                                  sep = "")
                             df <- try(read.table(currentFile, header = F,
@@ -163,21 +212,59 @@ server <- function(input, output){
                             {
                                 # increase number of days reference location had anomaly
                                 warmCount <- warmCount + 1
-                                for(i in 1:nrow(df))
+                                if(input$crossref == "cr")
                                 {
-                                    warmtoplot[df[i, 2], df[i, 3]] <-
-                                        warmtoplot[df[i, 2],
-                                                   df[i, 3]] + 1
+                                    # account for cross referencing
+                                    currentFile2 <- paste(folderName2, var2,
+                                                          "_blobs_",
+                                                          filterArea2,
+                                                          "_day_", day, 
+                                                          "_year_", year,
+                                                          ".csv",
+                                                          sep = "")
+                                    df2 <- try(read.table(currentFile2,
+                                                          header = F,
+                                                          sep = ","),
+                                               silent = T)
+                                    if(class(df2) == "try-error")
+                                        next
+                                } else {
+                                    df2 = df
+                                }
+                                for(i in 1:nrow(df2))
+                                {
+                                    warmtoplot[df2[i, 2], df2[i, 3]] <-
+                                        warmtoplot[df2[i, 2],
+                                                   df2[i, 3]] + 1
                                 }
                             }
                             else
                             {
                                 coldCount <- coldCount + 1
-                                for(i in 1:nrow(df))
+                                if(input$crossref == "cr")
                                 {
-                                    coldtoplot[df[i, 2], df[i, 3]] <-
-                                        coldtoplot[df[i, 2],
-                                                   df[i, 3]] + 1
+                                    # account for cross referencing
+                                    currentFile2 <- paste(folderName2, var2,
+                                                          "_blobs_",
+                                                          filterArea2,
+                                                          "_day_",day, 
+                                                          "_year_", year,
+                                                          ".csv",
+                                                          sep = "")
+                                    df2 <- try(read.table(currentFile2,
+                                                          header = F,
+                                                          sep = ","),
+                                               silent = T)
+                                    if(class(df2) == "try-error")
+                                        next
+                                } else {
+                                    df2 = df
+                                }
+                                for(i in 1:nrow(df2))
+                                {
+                                    coldtoplot[df2[i, 2], df2[i, 3]] <-
+                                        coldtoplot[df2[i, 2],
+                                                   df2[i, 3]] + 1
                                 }
                             }
                         }
@@ -202,7 +289,8 @@ server <- function(input, output){
                         for(day in days)
                         {
                             currentFile <- paste(folderName, var,
-                                                 "_blobs_200k_day_", day, 
+                                                 "_blobs_", filterArea,
+                                                 "_day_", day, 
                                                  "_year_", year, ".csv",
                                                  sep = "")
                             df <- try(read.table(currentFile, header = F,
@@ -221,21 +309,59 @@ server <- function(input, output){
                             {
                                 # increase number of days reference location had anomaly
                                 warmCount <- warmCount + 1
-                                for(i in 1:nrow(df))
+                                if(input$crossref == "cr")
                                 {
-                                    warmtoplot[df[i, 2], df[i, 3]] <-
-                                        warmtoplot[df[i, 2],
-                                                   df[i, 3]] + 1
+                                    # account for cross referencing
+                                    currentFile2 <- paste(folderName2, var2,
+                                                          "_blobs_",
+                                                          filterArea2,
+                                                          "_day_", day, 
+                                                          "_year_", year,
+                                                          ".csv",
+                                                          sep = "")
+                                    df2 <- try(read.table(currentFile2,
+                                                          header = F,
+                                                          sep = ","),
+                                               silent = T)
+                                    if(class(df2) == "try-error")
+                                        next
+                                } else {
+                                    df2 = df
+                                }
+                                for(i in 1:nrow(df2))
+                                {
+                                    warmtoplot[df2[i, 2], df2[i, 3]] <-
+                                        warmtoplot[df2[i, 2],
+                                                   df2[i, 3]] + 1
                                 }
                             }
                             else
                             {
                                 coldCount <- coldCount + 1
-                                for(i in 1:nrow(df))
+                                if(input$crossref == "cr")
                                 {
-                                    coldtoplot[df[i, 2], df[i, 3]] <-
-                                        coldtoplot[df[i, 2],
-                                                   df[i, 3]] + 1
+                                    # account for cross referencing
+                                    currentFile2 <- paste(folderName2, var2,
+                                                          "_blobs_",
+                                                          filterArea2,
+                                                          "_day_", day, 
+                                                          "_year_", year,
+                                                          ".csv",
+                                                          sep = "")
+                                    df2 <- try(read.table(currentFile2,
+                                                          header = F,
+                                                          sep = ","),
+                                               silent = T)
+                                    if(class(df2) == "try-error")
+                                        next
+                                } else {
+                                    df2 = df
+                                }
+                                for(i in 1:nrow(df2))
+                                {
+                                    coldtoplot[df2[i, 2], df2[i, 3]] <-
+                                        coldtoplot[df2[i, 2],
+                                                   df2[i, 3]] + 1
                                 }
                             }
                         }
@@ -246,8 +372,8 @@ server <- function(input, output){
             warmtoplot <- warmtoplot / warmCount
             coldtoplot <- coldtoplot / coldCount
             
-            warmtoplot[loc[1], loc[2]] <- 0
-            coldtoplot[loc[1], loc[2]] <- 0
+            warmtoplot[loc[1], loc[2]] <- -1
+            coldtoplot[loc[1], loc[2]] <- -1
             list(wa = warmtoplot, co = coldtoplot)
         })
     
